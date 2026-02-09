@@ -12,7 +12,13 @@ import {
     Menu,
     X,
     Clock,
-    Shield
+    Shield,
+    CreditCard,
+    FileText,
+    Home,
+    Newspaper,
+    Headphones,
+    BookOpenCheck
 } from 'lucide-react';
 import logo from '../assets/bells-logo.jpg';
 
@@ -21,14 +27,26 @@ const Layout = ({ children }) => {
     const location = useLocation();
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-    const navigation = [
-        { name: 'Dashboard', href: '/', icon: LayoutDashboard },
-        { name: 'Student Directory', href: '/students', icon: Users },
-        { name: 'Academic Courses', href: '/courses', icon: BookOpen },
-    ];
+    const navigation = [];
 
-    if (profile?.role === 'admin') {
-        navigation.push({ name: 'Security Logs', href: '/audit', icon: History });
+    if (profile?.role === 'admin' || profile?.role === 'staff') {
+        navigation.push(
+            { name: 'Dashboard', href: '/', icon: LayoutDashboard },
+            { name: 'Student Directory', href: '/students', icon: Users },
+            { name: 'Academic Courses', href: '/courses', icon: BookOpen }
+        );
+        if (profile?.role === 'admin') {
+            navigation.push({ name: 'Security Logs', href: '/audit', icon: History });
+        }
+    } else {
+        // Student Navigation
+        navigation.push(
+            { name: 'Dashboard', href: '/', icon: Home },
+            { name: 'My Courses', href: '/courses', icon: BookOpenCheck },
+            { name: 'Payments', href: '/payments', icon: CreditCard },
+            { name: 'Semester Result', href: '/result', icon: FileText },
+            { name: 'Accommodation', href: '/accommodation', icon: Home }, // Using Home icon as placeholder for Bed/Hostel if not available
+        );
     }
 
     return (
@@ -36,7 +54,7 @@ const Layout = ({ children }) => {
             {/* Mobile Menu Button - Premium Style */}
             <button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden fixed top-6 left-6 z-50 p-4 bg-primary-950 text-white rounded-[1.5rem] shadow-2xl active:scale-90 transition-all duration-300 border border-white/10 backdrop-blur-md"
+                className="lg:hidden fixed top-3 left-3 z-50 p-3 bg-primary-950 text-white rounded-xl shadow-2xl active:scale-90 transition-all duration-300 border border-white/10 backdrop-blur-md"
             >
                 <Menu className="w-5 h-5" />
             </button>
@@ -60,17 +78,17 @@ const Layout = ({ children }) => {
 
                 <div className="flex flex-col h-full relative z-10">
                     {/* Brand Header */}
-                    <div className="p-10 flex items-center justify-between">
-                        <Link to="/" className="flex items-center gap-4 group">
-                            <div className="w-14 h-14 bg-white rounded-[1.25rem] flex items-center justify-center shadow-2xl shadow-black/40 overflow-hidden border border-primary-800 p-1 group-hover:rotate-3 transition-transform duration-500">
+                    <div className="p-8 lg:p-10 flex items-center justify-between">
+                        <Link to="/" className="flex items-center gap-3 lg:gap-4 group">
+                            <div className="w-12 h-12 lg:w-14 lg:h-14 bg-white rounded-xl lg:rounded-[1.25rem] flex items-center justify-center shadow-2xl shadow-black/40 overflow-hidden border border-primary-800 p-1 group-hover:rotate-3 transition-transform duration-500">
                                 <img src={logo} alt="Bells University Logo" className="w-full h-full object-cover rounded-lg" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-black tracking-tighter leading-none italic uppercase font-heading">
+                                <h1 className="text-xl lg:text-2xl font-black tracking-tighter leading-none italic uppercase font-heading">
                                     Bells<span className="text-accent-500">tech</span>
                                 </h1>
-                                <p className="text-[10px] uppercase font-black tracking-[0.3em] text-primary-400 mt-1.5 flex items-center gap-1">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-primary-500"></span>
+                                <p className="text-[9px] lg:text-[10px] uppercase font-black tracking-[0.3em] text-primary-400 mt-1 lg:mt-1.5 flex items-center gap-1.5">
+                                    <span className="w-1 h-1 lg:w-1.5 lg:h-1.5 rounded-full bg-primary-500"></span>
                                     Registry Portal
                                 </p>
                             </div>
@@ -145,27 +163,36 @@ const Layout = ({ children }) => {
             {/* Main Application Area */}
             <main className="lg:pl-80 min-h-screen transition-all duration-700">
                 {/* Visual Header - High Fidelity */}
-                <header className="h-[100px] bg-white/[0.02] backdrop-blur-3xl border-b border-primary-100/10 flex items-center justify-between px-8 lg:px-12 sticky top-0 z-40">
-                    <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-primary-50 shadow-sm">
+                <header className="h-[70px] lg:h-[100px] bg-white/[0.02] backdrop-blur-3xl border-b border-primary-100/10 flex items-center justify-between px-4 sm:px-6 lg:px-12 sticky top-0 z-40 relative">
+                    <div className="flex items-center gap-4 pl-12 lg:pl-0">
+                        {/* Top Navigation for Students - Hidden on Mobile, Visible on Desktop */}
+                        {profile?.role === 'student' && (
+                            <div className="hidden lg:flex items-center gap-6 mr-8">
+                                <Link to="/" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">Home</Link>
+                                <Link to="/courses" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">Courses</Link>
+                                <Link to="/news" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">News</Link>
+                                <Link to="/support" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">Support</Link>
+                            </div>
+                        )}
+                        <div className="hidden sm:flex items-center gap-3 bg-white px-4 py-2 rounded-2xl border border-primary-50 shadow-sm">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981] animate-pulse"></div>
                             <span className="text-[10px] font-black text-primary-900 uppercase tracking-[0.2em]">Registry Core v2.0</span>
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-8">
-                        <div className="hidden md:flex items-center gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-100 pr-8">
+                    <div className="flex items-center gap-4 lg:gap-8">
+                        <div className="hidden lg:flex items-center gap-3 text-[10px] font-black text-gray-400 uppercase tracking-widest border-r border-gray-100 pr-8">
                             <Clock className="w-4 h-4 text-primary-400" />
                             {new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}
                         </div>
 
-                        <div className="flex items-center gap-4">
-                            <button className="p-3.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-2xl transition-all relative group">
+                        <div className="flex items-center gap-3 lg:gap-4">
+                            <button className="p-3 lg:p-3.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-xl lg:rounded-2xl transition-all relative group">
                                 <div className="absolute top-3.5 right-3.5 w-2 h-2 bg-accent-500 rounded-full border-2 border-white ring-2 ring-accent-500/20 group-hover:scale-110 transition-transform"></div>
                                 <Bell className="w-5 h-5" />
                             </button>
-                            <Link to="/profile" className="w-12 h-12 rounded-2xl overflow-hidden border-2 border-white shadow-xl hover:border-primary-200 transition-all active:scale-95">
-                                <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-700 font-black text-sm uppercase">
+                            <Link to="/profile" className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl overflow-hidden border-2 border-white shadow-xl hover:border-primary-200 transition-all active:scale-95">
+                                <div className="w-full h-full bg-primary-100 flex items-center justify-center text-primary-700 font-black text-xs lg:text-sm uppercase">
                                     {profile?.full_name?.charAt(0)}
                                 </div>
                             </Link>
@@ -173,7 +200,7 @@ const Layout = ({ children }) => {
                     </div>
                 </header>
 
-                <div className="p-8 lg:p-14 max-w-[1700px] mx-auto animate-slide-up">
+                <div className="p-4 sm:p-6 lg:p-14 max-w-[1700px] mx-auto animate-slide-up">
                     {children}
                 </div>
             </main>

@@ -13,6 +13,9 @@ import Students from './pages/Students';
 import Courses from './pages/Courses';
 import Profile from './pages/Profile';
 import AuditLogs from './pages/AuditLogs';
+import Payments from './pages/Payments';
+import Result from './pages/Result';
+import Accommodation from './pages/Accommodation';
 import Unauthorized from './pages/Unauthorized';
 
 function App() {
@@ -29,16 +32,15 @@ function App() {
             <Route element={<ProtectedRoute allowedRoles={['admin', 'staff', 'student']} />}>
               <Route element={<Layout><Dashboard /></Layout>} path="/" />
               <Route element={<Layout><Profile /></Layout>} path="/profile" />
+              <Route element={<Layout><Courses /></Layout>} path="/courses" />
+              <Route element={<Layout><Payments /></Layout>} path="/payments" />
+              <Route element={<Layout><Result /></Layout>} path="/result" />
+              <Route element={<Layout><Accommodation /></Layout>} path="/accommodation" />
             </Route>
 
             <Route element={<ProtectedRoute allowedRoles={['admin', 'staff']} />}>
               <Route element={<Layout><Students /></Layout>} path="/students" />
               <Route element={<Layout><AuditLogs /></Layout>} path="/audit" />
-            </Route>
-
-
-            <Route element={<ProtectedRoute allowedRoles={['admin', 'staff', 'student']} />}>
-              <Route element={<Layout><Courses /></Layout>} path="/courses" />
             </Route>
 
             <Route path="*" element={<Navigate to="/" replace />} />

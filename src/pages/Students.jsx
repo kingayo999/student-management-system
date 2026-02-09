@@ -127,20 +127,20 @@ const Students = () => {
     return (
         <div className="space-y-12 animate-slide-up">
             {/* High-Fidelity Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-6 border-b border-primary-100/50">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8 pb-6 border-b border-primary-100/50">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                        <span className="w-12 h-1 bg-primary-600 rounded-full"></span>
-                        <p className="text-[10px] font-black text-primary-500 uppercase tracking-[0.4em]">Official Registry</p>
+                        <span className="w-10 sm:w-12 h-1 bg-primary-600 rounded-full"></span>
+                        <p className="text-[9px] sm:text-[10px] font-black text-primary-500 uppercase tracking-[0.4em]">Official Registry</p>
                     </div>
-                    <h1 className="text-5xl font-black text-primary-950 tracking-tighter italic font-heading">
+                    <h1 className="text-4xl sm:text-5xl font-black text-primary-950 tracking-tighter italic font-heading">
                         Student <span className="text-primary-600">Directory</span>
                     </h1>
                 </div>
                 {profile?.role === 'admin' && (
                     <button
                         onClick={() => setShowAddModal(true)}
-                        className="btn-primary group"
+                        className="btn-primary group w-full md:w-auto"
                     >
                         <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-500" />
                         Enroll New Student
@@ -149,20 +149,20 @@ const Students = () => {
             </div>
 
             {/* Premium Search & Filter */}
-            <div className="academic-card p-4 flex flex-col md:flex-row gap-4 items-center bg-white shadow-2xl shadow-primary-950/5">
+            <div className="academic-card p-2 sm:p-4 flex flex-col md:flex-row gap-3 sm:gap-4 items-center bg-white shadow-2xl shadow-primary-950/5">
                 <div className="relative flex-1 group w-full">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 transition-colors group-focus-within:text-primary-600" />
+                    <Search className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 transition-colors group-focus-within:text-primary-600" />
                     <input
                         type="text"
                         placeholder="Search records by registration identifier or name..."
-                        className="w-full pl-16 pr-8 py-5 bg-transparent rounded-2xl focus:outline-none font-medium placeholder:text-gray-300"
+                        className="w-full pl-14 sm:pl-16 pr-6 sm:pr-8 py-4 sm:py-5 bg-transparent rounded-2xl focus:outline-none font-medium placeholder:text-gray-300 text-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-2 px-6 py-4 bg-primary-50 rounded-2xl border border-primary-100/50">
+                <div className="flex items-center justify-center gap-2 px-6 py-4 bg-primary-50 rounded-xl sm:rounded-2xl border border-primary-100/50 w-full sm:w-auto">
                     <Filter className="w-4 h-4 text-primary-600" />
-                    <span className="text-[10px] font-black text-primary-900 uppercase tracking-widest">Global Filter</span>
+                    <span className="text-[9px] sm:text-[10px] font-black text-primary-900 uppercase tracking-widest">Global Filter</span>
                 </div>
             </div>
 
@@ -170,14 +170,16 @@ const Students = () => {
             <div className="academic-card overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-primary-950 text-white uppercase tracking-[0.25em] text-[9px] font-black">
+                        <thead className="bg-primary-950 text-white uppercase tracking-[0.25em] text-[8px] sm:text-[9px] font-black whitespace-nowrap">
                             <tr>
-                                <th className="px-10 py-7">Reg Identifier</th>
-                                <th className="px-10 py-7">Full Identity</th>
-                                <th className="px-10 py-7">Department</th>
-                                <th className="px-10 py-7">Current Level</th>
-                                <th className="px-10 py-7">Status</th>
-                                <th className="px-10 py-7 text-right">Actions</th>
+                                <tr>
+                                    <th className="px-4 sm:px-10 py-4 sm:py-7">Reg Identifier</th>
+                                    <th className="px-4 sm:px-10 py-4 sm:py-7">Full Identity</th>
+                                    <th className="hidden lg:table-cell px-4 sm:px-10 py-4 sm:py-7">Department</th>
+                                    <th className="hidden md:table-cell px-4 sm:px-10 py-4 sm:py-7">Current Level</th>
+                                    <th className="px-4 sm:px-10 py-4 sm:py-7">Status</th>
+                                    <th className="px-4 sm:px-10 py-4 sm:py-7 text-right">Actions</th>
+                                </tr>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-primary-50">
@@ -189,33 +191,33 @@ const Students = () => {
                                 ))
                             ) : filteredStudents.length > 0 ? (
                                 filteredStudents.map((student) => (
-                                    <tr key={student.id} className="hover:bg-primary-50/20 transition-all group duration-500">
-                                        <td className="px-10 py-8">
-                                            <span className="font-mono font-bold text-xs text-primary-800 bg-primary-50 px-4 py-2 rounded-xl border border-primary-100 shadow-sm">{student.reg_no}</span>
+                                    <tr key={student.id} className="hover:bg-primary-50/20 transition-all group duration-500 whitespace-nowrap">
+                                        <td className="px-4 sm:px-10 py-4 sm:py-8">
+                                            <span className="font-mono font-bold text-[10px] sm:text-xs text-primary-800 bg-primary-50 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-primary-100 shadow-sm">{student.reg_no}</span>
                                         </td>
-                                        <td className="px-10 py-8">
-                                            <div className="flex items-center gap-5">
-                                                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-800 flex items-center justify-center text-white text-lg font-black shadow-xl shadow-primary-900/20 group-hover:rotate-3 transition-transform">
+                                        <td className="px-4 sm:px-10 py-4 sm:py-8">
+                                            <div className="flex items-center gap-3 sm:gap-5">
+                                                <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary-600 to-indigo-800 flex items-center justify-center text-white text-xs sm:text-lg font-black shadow-xl shadow-primary-900/20 group-hover:rotate-3 transition-transform">
                                                     {student.profiles?.full_name?.charAt(0)}
                                                 </div>
-                                                <span className="text-sm font-black text-primary-950 uppercase tracking-tight">{student.profiles?.full_name}</span>
+                                                <span className="text-xs sm:text-sm font-black text-primary-950 uppercase tracking-tight">{student.profiles?.full_name}</span>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8 text-xs font-black text-primary-400 uppercase tracking-widest">{student.department}</td>
-                                        <td className="px-10 py-8 text-[11px] font-black text-primary-700">{student.level} Level</td>
-                                        <td className="px-10 py-8">
-                                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${student.status === 'active'
+                                        <td className="hidden lg:table-cell px-4 sm:px-10 py-4 sm:py-8 text-[11px] sm:text-xs font-black text-primary-400 uppercase tracking-widest">{student.department}</td>
+                                        <td className="hidden md:table-cell px-4 sm:px-10 py-4 sm:py-8 text-[10px] sm:text-[11px] font-black text-primary-700">{student.level} Level</td>
+                                        <td className="px-4 sm:px-10 py-4 sm:py-8">
+                                            <span className={`inline-flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] border ${student.status === 'active'
                                                 ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
                                                 : 'bg-amber-50 text-amber-700 border-amber-100'
                                                 }`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${student.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                                                <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${student.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'}`}></span>
                                                 {student.status}
                                             </span>
                                         </td>
-                                        <td className="px-10 py-8 text-right">
-                                            <div className="flex items-center justify-end gap-3 opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
+                                        <td className="px-4 sm:px-10 py-4 sm:py-8 text-right">
+                                            <div className="flex items-center justify-end gap-2 sm:gap-3 lg:opacity-0 group-hover:opacity-100 transition-all duration-500 translate-x-4 group-hover:translate-x-0">
                                                 <button
-                                                    className="p-3 text-primary-700 hover:bg-white rounded-xl transition-all border border-transparent hover:border-primary-100 hover:shadow-xl active:scale-90"
+                                                    className="p-2 sm:p-3 text-primary-700 hover:bg-white rounded-xl transition-all border border-transparent hover:border-primary-100 hover:shadow-xl active:scale-90"
                                                     title="Modify Protocol"
                                                     onClick={() => {
                                                         setEditingStudent({ ...student });
@@ -226,7 +228,7 @@ const Students = () => {
                                                 </button>
                                                 {profile?.role === 'admin' && (
                                                     <button
-                                                        className="p-3 text-red-500 hover:bg-white rounded-xl transition-all border border-transparent hover:border-red-100 hover:shadow-xl active:scale-90"
+                                                        className="p-2 sm:p-3 text-red-500 hover:bg-white rounded-xl transition-all border border-transparent hover:border-red-100 hover:shadow-xl active:scale-90"
                                                         title="Revoke Access"
                                                         onClick={() => handleSoftDelete(student.id)}
                                                     >
@@ -259,17 +261,17 @@ const Students = () => {
             {showAddModal && (
                 <div className="fixed inset-0 bg-primary-950/40 backdrop-blur-xl z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 animate-in zoom-in duration-500">
-                        <div className="p-10 border-b border-primary-50 flex items-center justify-between bg-gradient-to-br from-primary-900 to-primary-950 text-white relative">
+                        <div className="p-8 sm:p-10 border-b border-primary-50 flex items-center justify-between bg-gradient-to-br from-primary-900 to-primary-950 text-white relative">
                             <div className="absolute inset-0 opacity-[0.05] bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]"></div>
                             <div className="relative z-10">
-                                <h2 className="text-2xl font-black tracking-tighter uppercase italic font-heading">New Enrollment</h2>
-                                <p className="text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1.5">Administrative Protocol</p>
+                                <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic font-heading">New Enrollment</h2>
+                                <p className="text-[9px] sm:text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1 lg:mt-1.5">Administrative Protocol</p>
                             </div>
-                            <button onClick={() => setShowAddModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-3 rounded-2xl relative z-10">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setShowAddModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-2 sm:p-3 rounded-xl sm:rounded-2xl relative z-10">
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
-                        <form onSubmit={handleAddStudent} className="p-10 space-y-8">
+                        <form onSubmit={handleAddStudent} className="p-8 sm:p-10 space-y-6 sm:space-y-8">
                             <div className="space-y-6">
                                 <div>
                                     <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Registration Identifier</label>
@@ -345,17 +347,17 @@ const Students = () => {
             {showEditModal && editingStudent && (
                 <div className="fixed inset-0 bg-primary-950/40 backdrop-blur-xl z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 animate-in zoom-in duration-500">
-                        <div className="p-10 border-b border-primary-50 flex items-center justify-between bg-primary-950 text-white relative">
+                        <div className="p-8 sm:p-10 border-b border-primary-50 flex items-center justify-between bg-primary-950 text-white relative">
                             <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent-500 to-transparent"></div>
                             <div className="relative z-10">
-                                <h2 className="text-2xl font-black tracking-tighter uppercase italic font-heading">Modify Record</h2>
-                                <p className="text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1.5">Registry Authentication</p>
+                                <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic font-heading">Modify Record</h2>
+                                <p className="text-[9px] sm:text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1 lg:mt-1.5">Registry Authentication</p>
                             </div>
-                            <button onClick={() => setShowEditModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-3 rounded-2xl relative z-10">
-                                <X className="w-6 h-6" />
+                            <button onClick={() => setShowEditModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-2 sm:p-3 rounded-xl sm:rounded-2xl relative z-10">
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </button>
                         </div>
-                        <form onSubmit={handleEditStudent} className="p-10 space-y-8">
+                        <form onSubmit={handleEditStudent} className="p-8 sm:p-10 space-y-6 sm:space-y-8">
                             <div className="space-y-6">
                                 <div>
                                     <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Registration Identifier</label>

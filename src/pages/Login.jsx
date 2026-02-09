@@ -88,7 +88,7 @@ const Login = () => {
                     </div>
 
                     <div className="academic-card p-1 shadow-2xl shadow-primary-900/10">
-                        <div className="bg-white rounded-[1.75rem] p-8 sm:p-10">
+                        <div className="bg-white rounded-[1.75rem] p-6 sm:p-10">
                             <form className="space-y-8" onSubmit={handleSubmit}>
                                 {error && (
                                     <div className="bg-red-50 border border-red-100 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in duration-300">

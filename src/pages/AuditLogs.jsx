@@ -54,35 +54,35 @@ const AuditLogs = () => {
     return (
         <div className="space-y-12">
             {/* High-Fidelity Header */}
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 pb-6 border-b border-primary-100/50">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8 pb-6 border-b border-primary-100/50">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3">
-                        <span className="w-12 h-1 bg-primary-950 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]"></span>
-                        <p className="text-[10px] font-black text-primary-500 uppercase tracking-[0.4em]">Mainframe Audit</p>
+                        <span className="w-10 sm:w-12 h-1 bg-primary-950 rounded-full shadow-[0_0_10px_rgba(0,0,0,0.1)]"></span>
+                        <p className="text-[9px] sm:text-[10px] font-black text-primary-500 uppercase tracking-[0.4em]">Mainframe Audit</p>
                     </div>
-                    <h1 className="text-5xl font-black text-primary-950 tracking-tighter italic font-heading">
+                    <h1 className="text-4xl sm:text-5xl font-black text-primary-950 tracking-tighter italic font-heading">
                         Security <span className="text-primary-600">Protocol</span>
                     </h1>
                 </div>
-                <div className="flex items-center gap-4 bg-emerald-50 px-6 py-4 rounded-2xl border border-emerald-100/50">
+                <div className="flex items-center gap-3 sm:gap-4 bg-emerald-50 px-5 sm:px-6 py-3.5 sm:py-4 rounded-xl sm:rounded-2xl border border-emerald-100/50 w-full sm:w-auto justify-center">
                     <Shield className="w-5 h-5 text-emerald-600 animate-pulse" />
-                    <span className="text-[10px] font-black text-emerald-900 uppercase tracking-widest">System Integrity: Nominal</span>
+                    <span className="text-[9px] sm:text-[10px] font-black text-emerald-900 uppercase tracking-widest">System Integrity: Nominal</span>
                 </div>
             </div>
 
             {/* Premium Search & Filter Bar */}
-            <div className="academic-card p-4 flex flex-col md:flex-row gap-4 items-center bg-white shadow-2xl shadow-primary-950/5">
+            <div className="academic-card p-2 sm:p-4 flex flex-col md:flex-row gap-3 sm:gap-4 items-center bg-white shadow-2xl shadow-primary-950/5">
                 <div className="relative flex-1 group w-full">
-                    <Search className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 transition-colors group-focus-within:text-primary-600" />
+                    <Search className="absolute left-5 sm:left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-300 transition-colors group-focus-within:text-primary-600" />
                     <input
                         type="text"
                         placeholder="Intercept records by action, entity ID or authorized actor..."
-                        className="w-full pl-16 pr-8 py-5 bg-transparent rounded-2xl focus:outline-none font-medium placeholder:text-gray-300"
+                        className="w-full pl-14 sm:pl-16 pr-6 sm:pr-8 py-4 sm:py-5 bg-transparent rounded-2xl focus:outline-none font-medium placeholder:text-gray-300 text-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                     />
                 </div>
-                <div className="flex items-center gap-3 px-6 py-4 bg-primary-50 rounded-2xl border border-primary-100/50 min-w-[260px]">
+                <div className="flex items-center gap-3 px-6 py-4 bg-primary-50 rounded-xl sm:rounded-2xl border border-primary-100/50 w-full sm:min-w-[260px]">
                     <Filter className="w-4 h-4 text-primary-600" />
                     <select
                         className="bg-transparent text-[10px] font-black text-primary-900 uppercase tracking-widest focus:outline-none flex-1 appearance-none cursor-pointer"
@@ -102,13 +102,13 @@ const AuditLogs = () => {
             <div className="academic-card overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
-                        <thead className="bg-primary-950 text-white uppercase tracking-[0.25em] text-[9px] font-black">
+                        <thead className="bg-primary-950 text-white uppercase tracking-[0.25em] text-[8px] sm:text-[9px] font-black whitespace-nowrap">
                             <tr>
-                                <th className="px-10 py-7">Access Timestamp</th>
-                                <th className="px-10 py-7">Authorized Actor</th>
-                                <th className="px-10 py-7">Action Protocol</th>
-                                <th className="px-10 py-7">Entity Class</th>
-                                <th className="px-10 py-7 text-right">Reference ID</th>
+                                <th className="px-6 sm:px-10 py-5 sm:py-7">Access Timestamp</th>
+                                <th className="px-6 sm:px-10 py-5 sm:py-7">Authorized Actor</th>
+                                <th className="px-6 sm:px-10 py-5 sm:py-7">Action Protocol</th>
+                                <th className="px-6 sm:px-10 py-5 sm:py-7">Entity Class</th>
+                                <th className="px-6 sm:px-10 py-5 sm:py-7 text-right">Reference ID</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-primary-50">
@@ -120,44 +120,44 @@ const AuditLogs = () => {
                                 ))
                             ) : filteredLogs.length > 0 ? (
                                 filteredLogs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-primary-50/20 transition-all group duration-500">
-                                        <td className="px-10 py-8">
-                                            <div className="flex items-center gap-3 text-xs font-bold text-gray-400 group-hover:text-primary-600 transition-colors">
-                                                <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-lg transition-all">
-                                                    <Clock className="w-4 h-4" />
+                                    <tr key={log.id} className="hover:bg-primary-50/20 transition-all group duration-500 whitespace-nowrap">
+                                        <td className="px-6 sm:px-10 py-6 sm:py-8">
+                                            <div className="flex items-center gap-2 sm:gap-3 text-[11px] sm:text-xs font-bold text-gray-400 group-hover:text-primary-600 transition-colors">
+                                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl bg-gray-50 flex items-center justify-center border border-gray-100 group-hover:bg-white group-hover:shadow-lg transition-all">
+                                                    <Clock className="w-3.5 h-3.5" />
                                                 </div>
                                                 <div className="flex flex-col">
                                                     <span className="text-primary-950 font-black">{new Date(log.created_at).toLocaleDateString()}</span>
-                                                    <span className="text-[10px] font-medium tracking-widest">{new Date(log.created_at).toLocaleTimeString()}</span>
+                                                    <span className="text-[9px] sm:text-[10px] font-medium tracking-widest">{new Date(log.created_at).toLocaleTimeString()}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-600 to-indigo-800 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-primary-900/10 group-hover:rotate-6 transition-transform">
+                                        <td className="px-6 sm:px-10 py-6 sm:py-8">
+                                            <div className="flex items-center gap-3 sm:gap-4">
+                                                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-gradient-to-br from-primary-600 to-indigo-800 flex items-center justify-center text-white text-[10px] sm:text-xs font-black shadow-lg shadow-primary-900/10 group-hover:rotate-6 transition-transform">
                                                     {log.profiles?.full_name?.charAt(0)}
                                                 </div>
                                                 <div>
-                                                    <p className="text-sm font-black text-primary-950 uppercase tracking-tight">{log.profiles?.full_name}</p>
-                                                    <p className="text-[9px] font-black text-primary-400 uppercase tracking-widest mt-0.5">{log.profiles?.role} AUTH</p>
+                                                    <p className="text-xs sm:text-sm font-black text-primary-950 uppercase tracking-tight">{log.profiles?.full_name}</p>
+                                                    <p className="text-[8px] sm:text-[9px] font-black text-primary-400 uppercase tracking-widest mt-0.5">{log.profiles?.role} AUTH</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8">
-                                            <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border ${getActionColor(log.action)}`}>
-                                                <span className={`w-1.5 h-1.5 rounded-full ${log.action.includes('delete') ? 'bg-red-500 animate-pulse' : log.action.includes('create') ? 'bg-emerald-500' : 'bg-indigo-500'}`}></span>
+                                        <td className="px-6 sm:px-10 py-6 sm:py-8">
+                                            <span className={`inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] border ${getActionColor(log.action)}`}>
+                                                <span className={`w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full ${log.action.includes('delete') ? 'bg-red-500 animate-pulse' : log.action.includes('create') ? 'bg-emerald-500' : 'bg-indigo-500'}`}></span>
                                                 {log.action.replace('_', ' ')}
                                             </span>
                                         </td>
-                                        <td className="px-10 py-8">
-                                            <div className="flex items-center gap-3 text-xs font-black text-primary-700 uppercase tracking-widest">
+                                        <td className="px-6 sm:px-10 py-6 sm:py-8">
+                                            <div className="flex items-center gap-2 sm:gap-3 text-[10px] sm:text-xs font-black text-primary-700 uppercase tracking-widest">
                                                 <Database className="w-3.5 h-3.5 text-primary-300" />
                                                 {log.entity.replace('_', ' ')}
                                             </div>
                                         </td>
-                                        <td className="px-10 py-8 text-right">
-                                            <code className="text-[10px] font-mono font-bold text-gray-400 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100 group-hover:text-primary-600 group-hover:border-primary-100 transition-all">
-                                                #{log.entity_id?.substring(0, 12)}...
+                                        <td className="px-6 sm:px-10 py-6 sm:py-8 text-right">
+                                            <code className="text-[9px] sm:text-[10px] font-mono font-bold text-gray-400 bg-gray-50 px-2 sm:px-3 py-1 sm:py-1.5 rounded-md sm:rounded-lg border border-gray-100 group-hover:text-primary-600 group-hover:border-primary-100 transition-all">
+                                                #{log.entity_id?.substring(0, 8)}...
                                             </code>
                                         </td>
                                     </tr>
