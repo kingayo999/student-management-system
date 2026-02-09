@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CreditCard, History, CheckCircle, Clock, AlertCircle, TrendingUp } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const Payments = () => {
     const { profile } = useAuth();

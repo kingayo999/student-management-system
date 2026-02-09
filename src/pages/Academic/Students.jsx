@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import { useAuth } from '../context/AuthContext';
+import { supabase } from '../../services/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { Search, Plus, Edit2, Trash2, Filter, X, Loader2 } from 'lucide-react';
-import { logAudit } from '../utils/logger';
+import { logAudit } from '../../utils/logger';
 
 const Students = () => {
     const { profile } = useAuth();
@@ -13,16 +13,42 @@ const Students = () => {
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingStudent, setEditingStudent] = useState(null);
+    const [departments, setDepartments] = useState([]);
+    const [availableProfiles, setAvailableProfiles] = useState([]);
+    const [feedback, setFeedback] = useState({ type: '', message: '' });
     const [newStudent, setNewStudent] = useState({
         reg_no: '',
-        department: 'COLENG',
+        department_id: '',
         level: '100',
         user_id: ''
     });
 
     useEffect(() => {
         fetchStudents();
+        fetchMetadata();
     }, []);
+
+    const fetchMetadata = async () => {
+        try {
+            // Fetch departments
+            const { data: depts } = await supabase.from('departments').select('id, name, code').order('name');
+            setDepartments(depts || []);
+
+            // Fetch profiles that are NOT already students
+            const { data: studentUserIds } = await supabase.from('students').select('user_id');
+            const usedIds = studentUserIds?.map(s => s.user_id) || [];
+
+            const { data: profiles } = await supabase
+                .from('profiles')
+                .select('id, full_name, email')
+                .eq('role', 'student')
+                .not('id', 'in', `(${usedIds.join(',')})`);
+
+            setAvailableProfiles(profiles || []);
+        } catch (err) {
+            console.error('Error fetching metadata:', err);
+        }
+    };
 
     const fetchStudents = async () => {
         try {
@@ -30,16 +56,34 @@ const Students = () => {
                 .from('students')
                 .select(`
                     *,
-                    profiles:user_id (full_name)
+                    profiles:user_id (full_name),
+                    departments:department_id (name, code)
                 `)
                 .is('deleted_at', null);
 
             if (error) throw error;
             setStudents(data || []);
         } catch (err) {
-            console.error('Error fetching students:', err);
+            showFeedback('error', 'Critical breach: Failed to synchronize student records.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const showFeedback = (type, message) => {
+        setFeedback({ type, message });
+        setTimeout(() => setFeedback({ type: '', message: '' }), 5000);
+    };
+
+    const validateStudent = (student) => {
+        if (!student.reg_no.match(/^[A-Z0-9/\-]{5,20}$/i)) {
+            throw new Error('Invalid Registration Identifier format protocol.');
+        }
+        if (!student.user_id) {
+            throw new Error('Identity Authorization UID is mandatory.');
+        }
+        if (!student.department_id) {
+            throw new Error('Departmental node must be selected.');
         }
     };
 
@@ -47,25 +91,33 @@ const Students = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            validateStudent(newStudent);
 
             const { data, error } = await supabase
                 .from('students')
                 .insert([{
-                    ...newStudent,
-                    user_id: newStudent.user_id || user.id
+                    reg_no: newStudent.reg_no.toUpperCase(),
+                    department_id: newStudent.department_id,
+                    level: newStudent.level,
+                    user_id: newStudent.user_id,
+                    college: departments.find(d => d.id === newStudent.department_id)?.name || 'UNKNOWN'
                 }])
                 .select()
                 .single();
 
-            if (error) throw error;
+            if (error) {
+                if (error.code === '23505') throw new Error('Registration ID already exists in the mainframe.');
+                throw error;
+            }
 
-            logAudit('create_student', 'students', data.id);
+            await logAudit('create_student', 'students', data.id);
+            showFeedback('success', `Authorization success: ${newStudent.reg_no} enrolled.`);
             setShowAddModal(false);
-            setNewStudent({ reg_no: '', department: 'COLENG', level: '100', user_id: '' });
+            setNewStudent({ reg_no: '', department_id: '', level: '100', user_id: '' });
             fetchStudents();
+            fetchMetadata(); // Refresh available profiles
         } catch (err) {
-            alert('Error adding student: ' + err.message);
+            showFeedback('error', err.message);
         } finally {
             setSubmitting(false);
         }
@@ -75,11 +127,13 @@ const Students = () => {
         e.preventDefault();
         setSubmitting(true);
         try {
+            validateStudent(editingStudent);
+
             const { error } = await supabase
                 .from('students')
                 .update({
-                    reg_no: editingStudent.reg_no,
-                    department: editingStudent.department,
+                    reg_no: editingStudent.reg_no.toUpperCase(),
+                    department_id: editingStudent.department_id,
                     level: editingStudent.level,
                     status: editingStudent.status
                 })
@@ -87,12 +141,13 @@ const Students = () => {
 
             if (error) throw error;
 
-            logAudit('update_student', 'students', editingStudent.id);
+            await logAudit('update_student', 'students', editingStudent.id);
+            showFeedback('success', 'Registry records synchronized successfully.');
             setShowEditModal(false);
             setEditingStudent(null);
             fetchStudents();
         } catch (err) {
-            alert('Error updating student: ' + err.message);
+            showFeedback('error', err.message);
         } finally {
             setSubmitting(false);
         }
@@ -100,6 +155,10 @@ const Students = () => {
 
     const handleSoftDelete = async (studentId) => {
         if (!window.confirm('Are you sure you want to deactivate this student record?')) return;
+
+        // Optimistic UI update
+        const originalStudents = [...students];
+        setStudents(prev => prev.filter(s => s.id !== studentId));
 
         try {
             const { error } = await supabase
@@ -112,10 +171,11 @@ const Students = () => {
 
             if (error) throw error;
 
-            logAudit('deactivate_student', 'students', studentId);
-            fetchStudents();
+            await logAudit('deactivate_student', 'students', studentId);
+            showFeedback('success', 'Security Protocol: Record deactivated and archived.');
         } catch (err) {
-            alert('Failed to deactivate student: ' + err.message);
+            setStudents(originalStudents);
+            showFeedback('error', 'Authorization failure: Could not deactivate record.');
         }
     };
 
@@ -127,6 +187,22 @@ const Students = () => {
     return (
         <div className="space-y-12 animate-slide-up">
             {/* High-Fidelity Header */}
+            {/* Feedback Notifications */}
+            {feedback.message && (
+                <div className={`fixed top-24 right-8 z-[60] p-5 rounded-2xl shadow-2xl border flex items-center gap-4 animate-in slide-in-from-right duration-500 backdrop-blur-xl ${feedback.type === 'error'
+                    ? 'bg-red-50/90 border-red-100 text-red-800'
+                    : 'bg-emerald-50/90 border-emerald-100 text-emerald-800'
+                    }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${feedback.type === 'error' ? 'bg-red-100' : 'bg-emerald-100'}`}>
+                        {feedback.type === 'error' ? <X className="w-5 h-5" /> : <Loader2 className="w-5 h-5 animate-spin" />}
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">{feedback.type === 'error' ? 'Security Breach' : 'Protocol Success'}</p>
+                        <p className="text-xs font-bold">{feedback.message}</p>
+                    </div>
+                </div>
+            )}
+
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 sm:gap-8 pb-6 border-b border-primary-100/50">
                 <div className="space-y-3">
                     <div className="flex items-center gap-3">
@@ -203,7 +279,9 @@ const Students = () => {
                                                 <span className="text-xs sm:text-sm font-black text-primary-950 uppercase tracking-tight">{student.profiles?.full_name}</span>
                                             </div>
                                         </td>
-                                        <td className="hidden lg:table-cell px-4 sm:px-10 py-4 sm:py-8 text-[11px] sm:text-xs font-black text-primary-400 uppercase tracking-widest">{student.department}</td>
+                                        <td className="hidden lg:table-cell px-4 sm:px-10 py-4 sm:py-8 text-[11px] sm:text-xs font-black text-primary-400 uppercase tracking-widest">
+                                            {student.departments?.name || 'Departmental Node Mismatch'}
+                                        </td>
                                         <td className="hidden md:table-cell px-4 sm:px-10 py-4 sm:py-8 text-[10px] sm:text-[11px] font-black text-primary-700">{student.level} Level</td>
                                         <td className="px-4 sm:px-10 py-4 sm:py-8">
                                             <span className={`inline-flex items-center gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-full text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] border ${student.status === 'active'
@@ -287,14 +365,15 @@ const Students = () => {
                                     <div>
                                         <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Department</label>
                                         <select
+                                            required
                                             className="input-field appearance-none bg-gray-50/50"
-                                            value={newStudent.department}
-                                            onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                                            value={newStudent.department_id}
+                                            onChange={e => setNewStudent({ ...newStudent, department_id: e.target.value })}
                                         >
-                                            <option value="COLENG">COLENG</option>
-                                            <option value="COLNAS">COLNAS</option>
-                                            <option value="COLMANS">COLMANS</option>
-                                            <option value="COLENVS">COLENVS</option>
+                                            <option value="">Select Departmental Node</option>
+                                            {departments.map(dept => (
+                                                <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>
@@ -314,13 +393,17 @@ const Students = () => {
                                 </div>
                                 <div>
                                     <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Profile Association UID</label>
-                                    <input
+                                    <select
                                         required
-                                        className="input-field text-xs font-mono"
-                                        placeholder="Enter Supabase Auth UUID..."
+                                        className="input-field appearance-none bg-gray-50/50"
                                         value={newStudent.user_id}
                                         onChange={e => setNewStudent({ ...newStudent, user_id: e.target.value })}
-                                    />
+                                    >
+                                        <option value="">Authorize Identity Link</option>
+                                        {availableProfiles.map(p => (
+                                            <option key={p.id} value={p.id}>{p.full_name} ({p.email})</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
                             <div className="flex gap-4 pt-4">
@@ -372,14 +455,14 @@ const Students = () => {
                                     <div>
                                         <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Department</label>
                                         <select
+                                            required
                                             className="input-field appearance-none"
-                                            value={editingStudent.department}
-                                            onChange={e => setEditingStudent({ ...editingStudent, department: e.target.value })}
+                                            value={editingStudent.department_id}
+                                            onChange={e => setEditingStudent({ ...editingStudent, department_id: e.target.value })}
                                         >
-                                            <option value="COLENG">COLENG</option>
-                                            <option value="COLNAS">COLNAS</option>
-                                            <option value="COLMANS">COLMANS</option>
-                                            <option value="COLENVS">COLENVS</option>
+                                            {departments.map(dept => (
+                                                <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
+                                            ))}
                                         </select>
                                     </div>
                                     <div>

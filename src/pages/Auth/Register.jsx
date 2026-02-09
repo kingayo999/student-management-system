@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import { GraduationCap, User, Mail, Lock, Loader2, CheckCircle } from 'lucide-react';
-import logo from '../assets/bells-logo.jpg';
+import logo from '../../assets/bells-logo.jpg';
 
 
 const Register = () => {

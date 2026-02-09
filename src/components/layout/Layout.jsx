@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import {
     LayoutDashboard,
     Users,
@@ -8,19 +8,15 @@ import {
     History,
     LogOut,
     Bell,
-    GraduationCap,
     Menu,
     X,
     Clock,
     Shield,
     CreditCard,
     FileText,
-    Home,
-    Newspaper,
-    Headphones,
-    BookOpenCheck
+    Home
 } from 'lucide-react';
-import logo from '../assets/bells-logo.jpg';
+import logo from '../../assets/bells-logo.jpg';
 
 const Layout = ({ children }) => {
     const { profile, signOut } = useAuth();
@@ -42,7 +38,7 @@ const Layout = ({ children }) => {
         // Student Navigation
         navigation.push(
             { name: 'Dashboard', href: '/', icon: Home },
-            { name: 'My Courses', href: '/courses', icon: BookOpenCheck },
+            { name: 'My Courses', href: '/courses', icon: BookOpen },
             { name: 'Payments', href: '/payments', icon: CreditCard },
             { name: 'Semester Result', href: '/result', icon: FileText },
             { name: 'Accommodation', href: '/accommodation', icon: Home }, // Using Home icon as placeholder for Bed/Hostel if not available

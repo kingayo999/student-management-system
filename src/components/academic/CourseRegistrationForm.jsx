@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 
 const CourseRegistrationForm = ({ courses, student, totalUnits }) => {
     // Generate a unique reference for the QR code

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../services/supabase';
-import { useAuth } from '../context/AuthContext';
+import { supabase } from '../../services/supabase';
+import { useAuth } from '../../context/AuthContext';
 import { History, Search, Filter, Shield, User, Database, Clock, X } from 'lucide-react';
 
 const AuditLogs = () => {
