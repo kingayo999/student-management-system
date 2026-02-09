@@ -2,7 +2,6 @@ import React from 'react';
 import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Loading from './Loading';
-import Unauthorized from '../../pages/Auth/Unauthorized';
 
 const ProtectedRoute = ({ allowedRoles }) => {
     const { user, profile, role, loading } = useAuth();
@@ -36,12 +35,16 @@ const ProtectedRoute = ({ allowedRoles }) => {
     // Role-based access control
     // If no roles specified, allow all authenticated users
     if (allowedRoles && !allowedRoles.includes(role)) {
-        return <Unauthorized />;
+        return <Navigate to="/unauthorized" replace />;
     }
 
     // Enforce student status (Active/Inactive/Deleted)
     if (role === 'student' && (profile?.isDeleted || profile?.studentStatus === 'inactive')) {
-        return <Unauthorized message="Your student account has been deactivated. Please contact the administrative office." />;
+        return <Navigate
+            to="/unauthorized"
+            state={{ message: "Your student account has been deactivated. Please contact the administrative office." }}
+            replace
+        />;
     }
 
 

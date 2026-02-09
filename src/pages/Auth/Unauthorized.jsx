@@ -1,8 +1,10 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { ShieldAlert } from 'lucide-react';
 
-const Unauthorized = ({ message }) => {
+const Unauthorized = ({ message: propMessage }) => {
+    const location = useLocation();
+    const message = propMessage || location.state?.message;
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
             <div className="bg-white p-8 rounded-2xl shadow-xl border border-red-100 max-w-md w-full text-center">
