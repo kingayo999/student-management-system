@@ -1,1 +1,0 @@
-import{s as i}from"./index-BQ8WljgO.js";const o=async(n,s,e=null)=>{if(i)try{const{data:{user:t}}=await i.auth.getUser();if(!t)return;i.from("audit_logs").insert([{actor_id:t.id,action:n,entity:s,entity_id:e?.toString()}]).then(({error:a})=>{a&&console.warn("Audit Logging Warning:",a.message)})}catch(t){console.warn("Logging utility failed:",t.message)}};export{o as l};
