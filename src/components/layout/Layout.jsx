@@ -17,6 +17,7 @@ import {
     Home
 } from 'lucide-react';
 import logo from '../../assets/bells-logo.jpg';
+import { ROLES } from '../../constants';
 
 const Layout = ({ children }) => {
     const { profile, signOut } = useAuth();
@@ -25,13 +26,13 @@ const Layout = ({ children }) => {
 
     const navigation = [];
 
-    if (profile?.role === 'admin' || profile?.role === 'staff') {
+    if (profile?.role === ROLES.ADMIN || profile?.role === ROLES.STAFF) {
         navigation.push(
             { name: 'Dashboard', href: '/', icon: LayoutDashboard },
             { name: 'Student Directory', href: '/students', icon: Users },
             { name: 'Academic Courses', href: '/courses', icon: BookOpen }
         );
-        if (profile?.role === 'admin') {
+        if (profile?.role === ROLES.ADMIN) {
             navigation.push({ name: 'Security Logs', href: '/audit', icon: History });
         }
     } else {
@@ -162,7 +163,7 @@ const Layout = ({ children }) => {
                 <header className="h-[70px] lg:h-[100px] bg-white/[0.02] backdrop-blur-3xl border-b border-primary-100/10 flex items-center justify-between px-4 sm:px-6 lg:px-12 sticky top-0 z-40 relative">
                     <div className="flex items-center gap-4 pl-12 lg:pl-0">
                         {/* Top Navigation for Students - Hidden on Mobile, Visible on Desktop */}
-                        {profile?.role === 'student' && (
+                        {profile?.role === ROLES.STUDENT && (
                             <div className="hidden lg:flex items-center gap-6 mr-8">
                                 <Link to="/" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">Home</Link>
                                 <Link to="/courses" className="text-sm font-bold text-primary-600 hover:text-accent-500 transition-colors">Courses</Link>

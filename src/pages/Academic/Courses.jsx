@@ -1,16 +1,34 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
-import { Book, Plus, Search, X, Loader2, CheckCircle, GraduationCap, Trash2, Printer, FileText } from 'lucide-react';
+import { Book, Plus, Search, X, Loader2, GraduationCap, Printer, FileText } from 'lucide-react';
 import { logAudit } from '../../utils/logger';
+import { handleError } from '../../utils/errorHandler';
 import CourseRegistrationForm from '../../components/academic/CourseRegistrationForm';
+import { useFeedback } from '../../hooks/useFeedback';
+import { useDebounce } from '../../hooks/useDebounce';
+import { useCourses } from '../../hooks/useCourses';
+import AddCourseModal from './components/AddCourseModal';
+import EditCourseModal from './components/EditCourseModal';
+import CourseList from './components/CourseList';
+import { ROLES } from '../../constants';
 
 const Courses = () => {
     const { profile } = useAuth();
-    const [courses, setCourses] = useState([]);
+    const { feedback, showFeedback } = useFeedback();
+
+    // Use custom hook for courses
+    const {
+        courses,
+        loading: coursesLoading,
+        fetchCourses,
+        createCourse,
+        updateCourse,
+        deleteCourse
+    } = useCourses();
+
     const [departments, setDepartments] = useState([]);
     const [activeSession, setActiveSession] = useState(null);
-    const [feedback, setFeedback] = useState({ type: '', message: '' });
     const [activeTab, setActiveTab] = useState('registration');
     const [newCourse, setNewCourse] = useState({
         name: '',
@@ -30,18 +48,31 @@ const Courses = () => {
     const [studentData, setStudentData] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [editingCourse, setEditingCourse] = useState(null);
 
+    // Debounce search term for performance
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
+    // Memoize filtered courses
+    const filteredCourses = useMemo(() => {
+        if (!debouncedSearchTerm) return courses;
+        const search = debouncedSearchTerm.toLowerCase();
+        return courses.filter(course =>
+            course.name?.toLowerCase().includes(search) ||
+            course.code?.toLowerCase().includes(search) ||
+            course.departments?.name?.toLowerCase().includes(search)
+        );
+    }, [courses, debouncedSearchTerm]);
+
     useEffect(() => {
         fetchMetadata();
         fetchCourses();
-    }, []);
+    }, [fetchCourses]);
 
     useEffect(() => {
-        if (profile?.role === 'student' && activeSession) {
+        if (profile?.role === ROLES.STUDENT && activeSession) {
             fetchMyEnrollments();
         }
     }, [profile, activeSession]);
@@ -59,29 +90,6 @@ const Courses = () => {
             setActiveSession(session);
         } catch (err) {
             console.error('Error fetching metadata:', err);
-        }
-    };
-
-    const showFeedback = (type, message) => {
-        setFeedback({ type, message });
-        setTimeout(() => setFeedback({ type: '', message: '' }), 5000);
-    };
-
-    const fetchCourses = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('courses')
-                .select(`
-                    *,
-                    departments:department_id (name, code)
-                `)
-                .order('code');
-            if (error) throw error;
-            setCourses(data || []);
-        } catch (err) {
-            showFeedback('error', 'Failed to synchronize curriculum catalog.');
-        } finally {
-            setLoading(false);
         }
     };
 
@@ -119,23 +127,11 @@ const Courses = () => {
     const handleCreateCourse = async (e) => {
         e.preventDefault();
         if (!newCourse.department_id) return showFeedback('error', 'Departmental node must be authorized.');
+
         setSubmitting(true);
-        try {
-            const { data, error } = await supabase
-                .from('courses')
-                .insert([{
-                    ...newCourse,
-                    code: newCourse.code.toUpperCase()
-                }])
-                .select()
-                .single();
+        const result = await createCourse(newCourse);
 
-            if (error) {
-                if (error.code === '23505') throw new Error('Course code already exists in the mainframe.');
-                throw error;
-            }
-
-            await logAudit('create_course', 'courses', data.id);
+        if (result.success) {
             showFeedback('success', 'Course protocol successfully provisioned.');
             setShowAddModal(false);
             setNewCourse({
@@ -146,63 +142,37 @@ const Courses = () => {
                 level: '100',
                 semester: 'First'
             });
-            fetchCourses();
-        } catch (err) {
-            showFeedback('error', err.message);
-        } finally {
-            setSubmitting(false);
+        } else {
+            showFeedback('error', result.error);
         }
+        setSubmitting(false);
     };
 
     const handleEditCourse = async (e) => {
         e.preventDefault();
         setSubmitting(true);
-        try {
-            const { error } = await supabase
-                .from('courses')
-                .update({
-                    name: editingCourse.name,
-                    code: editingCourse.code.toUpperCase(),
-                    credit_unit: editingCourse.credit_unit,
-                    department_id: editingCourse.department_id,
-                    level: editingCourse.level,
-                    semester: editingCourse.semester
-                })
-                .eq('id', editingCourse.id);
 
-            if (error) throw error;
+        const result = await updateCourse(editingCourse.id, editingCourse);
 
-            await logAudit('update_course', 'courses', editingCourse.id);
+        if (result.success) {
             showFeedback('success', 'Registry records synchronized successfully.');
             setShowEditModal(false);
             setEditingCourse(null);
-            fetchCourses();
-        } catch (err) {
-            showFeedback('error', err.message);
-        } finally {
-            setSubmitting(false);
+        } else {
+            showFeedback('error', result.error);
         }
+        setSubmitting(false);
     };
 
     const handleDeleteCourse = async (courseId) => {
         if (!window.confirm('Are you sure you want to permanently delete this course from the curriculum?')) return;
 
-        const originalCourses = [...courses];
-        setCourses(prev => prev.filter(c => c.id !== courseId));
+        const result = await deleteCourse(courseId);
 
-        try {
-            const { error } = await supabase
-                .from('courses')
-                .delete()
-                .eq('id', courseId);
-
-            if (error) throw error;
-
-            await logAudit('delete_course', 'courses', courseId);
+        if (result.success) {
             showFeedback('success', 'Security Protocol: Course purged from mainframe.');
-        } catch (err) {
-            setCourses(originalCourses);
-            showFeedback('error', 'Authorization failure: Could not delete course.');
+        } else {
+            showFeedback('error', result.error);
         }
     };
 
@@ -310,11 +280,6 @@ const Courses = () => {
         }
     };
 
-    const filteredCourses = courses.filter(c =>
-        (c.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (c.code || '').toLowerCase().includes(searchTerm.toLowerCase())
-    );
-
     const enrolledCourses = courses.filter(c => myEnrollments.some(e => e.course_id === c.id));
     const totalUnits = enrolledCourses.reduce((acc, curr) => acc + curr.credit_unit, 0);
 
@@ -348,7 +313,7 @@ const Courses = () => {
                     </h1>
                 </div>
                 {/* Student Tabs for Course Management */}
-                {profile?.role === 'student' && (
+                {profile?.role === ROLES.STUDENT && (
                     <div className="flex gap-4 p-1 bg-primary-100/50 rounded-[1.25rem] w-fit">
                         <button
                             onClick={() => setActiveTab('registration')}
@@ -368,7 +333,7 @@ const Courses = () => {
                 )}
 
                 {/* Admin/Staff Tabs for Enrollment Management */}
-                {(profile?.role === 'admin' || profile?.role === 'staff') && (
+                {(profile?.role === ROLES.ADMIN || profile?.role === ROLES.STAFF) && (
                     <div className="flex gap-4 p-1 bg-primary-100/50 rounded-[1.25rem] w-fit">
                         <button
                             onClick={() => setActiveTab('registration')}
@@ -387,7 +352,7 @@ const Courses = () => {
                     </div>
                 )}
 
-                {profile?.role === 'admin' && (
+                {profile?.role === ROLES.ADMIN && (
                     <div className="flex justify-end">
                         <button
                             onClick={() => setShowAddModal(true)}
@@ -401,7 +366,7 @@ const Courses = () => {
             </div>
 
             {/* Admin Student Sync View */}
-            {(profile?.role === 'admin' || profile?.role === 'staff') && activeTab === 'admin_sync' && (
+            {(profile?.role === ROLES.ADMIN || profile?.role === ROLES.STAFF) && activeTab === 'admin_sync' && (
                 <div className="space-y-8 animate-slide-up">
                     <div className="academic-card p-8 bg-white shadow-2xl shadow-primary-950/5 border border-primary-50 relative overflow-hidden">
                         <div className="absolute top-0 right-0 p-12 opacity-[0.02] pointer-events-none">
@@ -508,7 +473,7 @@ const Courses = () => {
             )}
 
             {/* My Registered Courses View (Printable) */}
-            {profile?.role === 'student' && activeTab === 'my_courses' && (
+            {profile?.role === ROLES.STUDENT && activeTab === 'my_courses' && (
                 <div className="space-y-8 animate-slide-up">
                     <div className="flex justify-end mb-4 print:hidden">
                         <button
@@ -552,350 +517,46 @@ const Courses = () => {
                         </div>
 
 
+
                         {/* Refined Course Catalog Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                            {loading ? (
-                                [1, 2, 3, 4, 5, 6].map(i => (
-                                    <div key={i} className="h-72 bg-white rounded-[2.5rem] animate-pulse border border-primary-50 shadow-sm"></div>
-                                ))
-                            ) : filteredCourses.length > 0 ? (
-                                filteredCourses.map((course) => (
-                                    <div key={course.id} className="academic-card group overflow-hidden flex flex-col bg-white hover:bg-gradient-to-br hover:from-white hover:to-primary-50/30">
-                                        <div className="p-8 sm:p-10 pb-5 sm:pb-6 relative">
-                                            <div className="absolute top-0 right-0 p-6 sm:p-8 opacity-[0.03] pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                                                <Book className="w-24 h-24 sm:w-32 sm:h-32 text-primary-950" />
-                                            </div>
-                                            <div className="flex justify-between items-start mb-6 sm:mb-8 relative z-10">
-                                                <div className="space-y-1">
-                                                    <span className="px-4 sm:px-5 py-1.5 sm:py-2 bg-primary-950 text-white text-[8px] sm:text-[9px] font-black uppercase tracking-[0.3em] rounded-lg sm:rounded-xl shadow-xl shadow-primary-900/20 block w-fit">
-                                                        {course.code}
-                                                    </span>
-                                                </div>
-                                                <div className="text-right">
-                                                    <div className="text-[9px] sm:text-[10px] font-black text-primary-400 uppercase tracking-widest mb-1">Weight</div>
-                                                    <span className="text-xs sm:text-sm font-black text-primary-950 bg-primary-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg sm:rounded-xl border border-primary-100 shadow-sm">
-                                                        {course.credit_unit || 3} Units
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <h3 className="text-xl sm:text-2xl font-black text-primary-950 mb-3 sm:mb-4 group-hover:text-primary-600 transition-colors uppercase tracking-tighter leading-tight font-heading min-h-[3.5rem] sm:min-h-[4rem]">
-                                                {course.name}
-                                            </h3>
-                                            <div className="flex flex-wrap gap-2 mb-4">
-                                                <span className="px-3 py-1 bg-primary-50 text-[9px] font-black uppercase tracking-widest text-primary-600 rounded-lg border border-primary-100">
-                                                    {course.departments?.name || 'GEN-ED'}
-                                                </span>
-                                                <span className="px-3 py-1 bg-indigo-50 text-[9px] font-black uppercase tracking-widest text-indigo-600 rounded-lg border border-indigo-100">
-                                                    {course.level} LVL
-                                                </span>
-                                                <span className="px-3 py-1 bg-amber-50 text-[9px] font-black uppercase tracking-widest text-amber-600 rounded-lg border border-amber-100">
-                                                    {course.semester} SEM
-                                                </span>
-                                            </div>
-                                            <div className="flex items-center gap-2 sm:gap-3">
-                                                <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-emerald-50 flex items-center justify-center">
-                                                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-500" />
-                                                </div>
-                                                <p className="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Registry Authenticated</p>
-                                            </div>
-                                        </div>
-                                        <div className="mt-auto p-8 sm:p-10 pt-3 sm:pt-4 relative z-10">
-                                            {profile?.role === 'student' ? (
-                                                <button
-                                                    onClick={() => handleEnroll(course.id)}
-                                                    disabled={submitting || myEnrollments.some(e => e.course_id === course.id)}
-                                                    className={`w-full py-4 sm:py-5 rounded-xl sm:rounded-[1.5rem] font-black text-[9px] sm:text-[10px] uppercase tracking-[0.2em] transition-all transform active:scale-95 shadow-2xl relative overflow-hidden group/btn ${myEnrollments.some(e => e.course_id === course.id)
-                                                        ? 'bg-primary-50 text-primary-700 border border-primary-100 cursor-not-allowed shadow-none'
-                                                        : 'bg-primary-900 text-white hover:bg-primary-950 hover:-translate-y-1 shadow-primary-900/40'
-                                                        }`}
-                                                >
-                                                    <span className="relative z-10 flex items-center justify-center gap-2 sm:gap-3">
-                                                        {myEnrollments.some(e => e.course_id === course.id) ? (
-                                                            <>
-                                                                <CheckCircle className="w-4 h-4" /> Successfully Enrolled
-                                                            </>
-                                                        ) : (
-                                                            <>
-                                                                <Plus className="w-4 h-4 group-hover/btn:rotate-90 transition-transform duration-500" />
-                                                                Authorize Enrollment
-                                                            </>
-                                                        )}
-                                                    </span>
-                                                </button>
-                                            ) : (
-                                                <div className="flex gap-4">
-                                                    <button
-                                                        onClick={() => {
-                                                            setEditingCourse({ ...course });
-                                                            setShowEditModal(true);
-                                                        }}
-                                                        className="flex-1 py-4 bg-primary-50 text-primary-950 rounded-[1.25rem] font-black text-[9px] uppercase tracking-[0.2em] hover:bg-primary-100 transition-all border border-primary-100/50 shadow-sm active:scale-95 hover:-translate-y-0.5"
-                                                    >
-                                                        Modify
-                                                    </button>
-                                                    {profile?.role === 'admin' && (
-                                                        <button
-                                                            onClick={() => handleDeleteCourse(course.id)}
-                                                            className="p-4 bg-red-50 text-red-500 rounded-[1.25rem] border border-red-100 hover:bg-red-100/50 transition-all active:scale-95 shadow-sm hover:-translate-y-0.5"
-                                                            title="Revoke Course"
-                                                        >
-                                                            <Trash2 className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="col-span-full py-40 text-center academic-card bg-transparent shadow-none border-dashed border-2 border-primary-100">
-                                    <div className="bg-primary-50 w-32 h-32 rounded-[2.5rem] flex items-center justify-center mx-auto mb-10 border border-primary-100 shadow-inner">
-                                        <GraduationCap className="w-16 h-16 text-primary-200" />
-                                    </div>
-                                    <h3 className="text-primary-950 font-black text-3xl mb-4 tracking-tighter italic font-heading uppercase">Curriculum Empty</h3>
-                                    <p className="text-gray-400 max-w-sm mx-auto font-bold uppercase tracking-widest text-[10px] leading-loose">The academic catalog is currently waiting for official protocol entries from the registry department.</p>
-                                </div>
-                            )}
-                        </div>
+                        <CourseList
+                            courses={filteredCourses}
+                            loading={coursesLoading}
+                            profile={profile}
+                            myEnrollments={myEnrollments}
+                            submitting={submitting}
+                            onEnroll={handleEnroll}
+                            onEdit={(course) => {
+                                setEditingCourse({ ...course });
+                                setShowEditModal(true);
+                            }}
+                            onDelete={handleDeleteCourse}
+                        />
 
 
                         {/* Premium Modals with Glassmorphism */}
-                        {
-                            showAddModal && (
-                                <div className="fixed inset-0 bg-primary-950/40 backdrop-blur-xl z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
-                                    <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 animate-in zoom-in duration-500">
-                                        <div className="p-8 sm:p-10 border-b border-primary-50 flex items-center justify-between bg-gradient-to-br from-primary-900 to-primary-950 text-white relative">
-                                            <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent-500 to-transparent"></div>
-                                            <div className="relative z-10">
-                                                <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic font-heading">Provision Course</h2>
-                                                <p className="text-[9px] sm:text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1 lg:mt-1.5">Curriculum Architecture</p>
-                                            </div>
-                                            <button onClick={() => setShowAddModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-2 sm:p-3 rounded-xl sm:rounded-2xl relative z-10">
-                                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                                            </button>
-                                        </div>
-                                        <form onSubmit={handleCreateCourse} className="p-8 sm:p-10 space-y-6 sm:space-y-8">
-                                            <div className="space-y-6">
-                                                <div className="grid grid-cols-2 gap-6">
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Course Identity Code</label>
-                                                        <input
-                                                            required
-                                                            className="input-field uppercase font-mono tracking-widest shadow-inner !bg-gray-50/50"
-                                                            placeholder="e.g. ENG 201"
-                                                            value={newCourse.code}
-                                                            onChange={e => setNewCourse({ ...newCourse, code: e.target.value.toUpperCase() })}
-                                                        />
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Departmental Node</label>
-                                                        <select
-                                                            required
-                                                            className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                            value={newCourse.department_id}
-                                                            onChange={e => setNewCourse({ ...newCourse, department_id: e.target.value })}
-                                                        >
-                                                            <option value="">Select Dept</option>
-                                                            {departments.map(dept => (
-                                                                <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Official Course Title</label>
-                                                    <input
-                                                        required
-                                                        className="input-field shadow-inner !bg-gray-50/50"
-                                                        placeholder="e.g. Thermodynamics"
-                                                        value={newCourse.name}
-                                                        onChange={e => setNewCourse({ ...newCourse, name: e.target.value })}
-                                                    />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-6">
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Academic Level</label>
-                                                        <select
-                                                            className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                            value={newCourse.level}
-                                                            onChange={e => setNewCourse({ ...newCourse, level: e.target.value })}
-                                                        >
-                                                            <option value="100">100 Level</option>
-                                                            <option value="200">200 Level</option>
-                                                            <option value="300">300 Level</option>
-                                                            <option value="400">400 Level</option>
-                                                            <option value="500">500 Level</option>
-                                                            <option value="PG">Postgraduate</option>
-                                                        </select>
-                                                    </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Semester Cycle</label>
-                                                        <select
-                                                            className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                            value={newCourse.semester}
-                                                            onChange={e => setNewCourse({ ...newCourse, semester: e.target.value })}
-                                                        >
-                                                            <option value="First">First Semester</option>
-                                                            <option value="Second">Second Semester</option>
-                                                        </select>
-                                                    </div>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Credit Weight Protocol</label>
-                                                    <div className="grid grid-cols-6 gap-3">
-                                                        {[1, 2, 3, 4, 5, 6].map(unit => (
-                                                            <button
-                                                                key={unit}
-                                                                type="button"
-                                                                onClick={() => setNewCourse({ ...newCourse, credit_unit: unit })}
-                                                                className={`py-4 rounded-2xl font-black text-sm transition-all border ${newCourse.credit_unit === unit
-                                                                    ? 'bg-primary-950 text-white border-primary-950 shadow-xl shadow-primary-950/20'
-                                                                    : 'bg-white text-primary-400 border-primary-50 hover:border-primary-200'
-                                                                    }`}
-                                                            >
-                                                                {unit}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-4 pt-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => setShowAddModal(false)}
-                                                    className="flex-1 px-8 py-4 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all"
-                                                >
-                                                    Abort
-                                                </button>
-                                                <button
-                                                    type="submit"
-                                                    disabled={submitting}
-                                                    className="btn-primary flex-1"
-                                                >
-                                                    {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Authorize Course'}
-                                                </button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
+                        <AddCourseModal
+                            isOpen={showAddModal}
+                            onClose={() => setShowAddModal(false)}
+                            onSubmit={handleCreateCourse}
+                            courseData={newCourse}
+                            onCourseDataChange={setNewCourse}
+                            departments={departments}
+                            submitting={submitting}
+                        />
 
-                        {showEditModal && editingCourse && (
-                            <div className="fixed inset-0 bg-primary-950/40 backdrop-blur-xl z-50 flex items-center justify-center p-6 animate-in fade-in duration-500">
-                                <div className="bg-white rounded-[2rem] sm:rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden border border-white/20 animate-in zoom-in duration-500">
-                                    <div className="p-8 sm:p-10 border-b border-primary-50 flex items-center justify-between bg-primary-950 text-white relative">
-                                        <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-accent-500 to-transparent"></div>
-                                        <div className="relative z-10">
-                                            <h2 className="text-xl sm:text-2xl font-black tracking-tighter uppercase italic font-heading">Protocol Modification</h2>
-                                            <p className="text-[9px] sm:text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mt-1 lg:mt-1.5">Official Records</p>
-                                        </div>
-                                        <button onClick={() => setShowEditModal(false)} className="text-white/50 hover:text-white transition-colors bg-white/5 p-2 sm:p-3 rounded-xl sm:rounded-2xl relative z-10">
-                                            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                                        </button>
-                                    </div>
-                                    <form onSubmit={handleEditCourse} className="p-8 sm:p-10 space-y-6 sm:space-y-8">
-                                        <div className="space-y-6">
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Course Identity Code</label>
-                                                    <input
-                                                        required
-                                                        className="input-field uppercase font-mono tracking-widest shadow-inner !bg-gray-50/50"
-                                                        value={editingCourse.code}
-                                                        onChange={e => setEditingCourse({ ...editingCourse, code: e.target.value.toUpperCase() })}
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Departmental Node</label>
-                                                    <select
-                                                        required
-                                                        className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                        value={editingCourse.department_id}
-                                                        onChange={e => setEditingCourse({ ...editingCourse, department_id: e.target.value })}
-                                                    >
-                                                        <option value="">Select Dept</option>
-                                                        {departments.map(dept => (
-                                                            <option key={dept.id} value={dept.id}>{dept.name} ({dept.code})</option>
-                                                        ))}
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Official Course Title</label>
-                                                <input
-                                                    required
-                                                    className="input-field shadow-inner !bg-gray-50/50"
-                                                    value={editingCourse.name}
-                                                    onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })}
-                                                />
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-6">
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Academic Level</label>
-                                                    <select
-                                                        className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                        value={editingCourse.level}
-                                                        onChange={e => setEditingCourse({ ...editingCourse, level: e.target.value })}
-                                                    >
-                                                        <option value="100">100 Level</option>
-                                                        <option value="200">200 Level</option>
-                                                        <option value="300">300 Level</option>
-                                                        <option value="400">400 Level</option>
-                                                        <option value="500">500 Level</option>
-                                                        <option value="PG">Postgraduate</option>
-                                                    </select>
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Semester Cycle</label>
-                                                    <select
-                                                        className="input-field appearance-none bg-gray-50/50 shadow-inner"
-                                                        value={editingCourse.semester}
-                                                        onChange={e => setEditingCourse({ ...editingCourse, semester: e.target.value })}
-                                                    >
-                                                        <option value="First">First Semester</option>
-                                                        <option value="Second">Second Semester</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-black text-primary-400 uppercase tracking-[0.3em] mb-3 ml-1">Credit Weight Protocol</label>
-                                                <div className="grid grid-cols-6 gap-3">
-                                                    {[1, 2, 3, 4, 5, 6].map(unit => (
-                                                        <button
-                                                            key={unit}
-                                                            type="button"
-                                                            onClick={() => setEditingCourse({ ...editingCourse, credit_unit: unit })}
-                                                            className={`py-4 rounded-2xl font-black text-sm transition-all border ${editingCourse.credit_unit === unit
-                                                                ? 'bg-primary-950 text-white border-primary-950 shadow-xl shadow-primary-950/20'
-                                                                : 'bg-white text-primary-400 border-primary-50 hover:border-primary-200'
-                                                                }`}
-                                                        >
-                                                            {unit}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex gap-4 pt-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowEditModal(false)}
-                                                className="flex-1 px-8 py-4 border border-gray-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 hover:bg-gray-50 transition-all"
-                                            >
-                                                Discard
-                                            </button>
-                                            <button
-                                                type="submit"
-                                                disabled={submitting}
-                                                className="btn-primary flex-1"
-                                            >
-                                                {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Commit Protocol'}
-                                            </button>
-                                        </div>
-                                    </form>
-                                </div>
-                            </div>
-                        )}
+                        <EditCourseModal
+                            isOpen={showEditModal && !!editingCourse}
+                            onClose={() => {
+                                setShowEditModal(false);
+                                setEditingCourse(null);
+                            }}
+                            onSubmit={handleEditCourse}
+                            courseData={editingCourse}
+                            onCourseDataChange={setEditingCourse}
+                            departments={departments}
+                            submitting={submitting}
+                        />
                     </>
                 )}
         </div>

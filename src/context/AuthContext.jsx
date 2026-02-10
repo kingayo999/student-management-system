@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
+import { TIMEOUTS, STORAGE_KEYS, ROLES } from '../constants';
+import PropTypes from 'prop-types';
 
 const AuthContext = createContext({});
 
@@ -7,7 +9,7 @@ export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [profile, setProfile] = useState(() => {
         try {
-            const cached = localStorage.getItem('registry_profile');
+            const cached = localStorage.getItem(STORAGE_KEYS.PROFILE);
             return cached ? JSON.parse(cached) : null;
         } catch {
             return null;
@@ -36,7 +38,7 @@ export const AuthProvider = ({ children }) => {
                 }
             } else {
                 setProfile(null);
-                localStorage.removeItem('registry_profile');
+                localStorage.removeItem(STORAGE_KEYS.PROFILE);
                 setLoading(false);
             }
         };
@@ -67,7 +69,7 @@ export const AuthProvider = ({ children }) => {
 
         try {
             const timeoutPromise = new Promise((_, reject) =>
-                setTimeout(() => reject(new Error('Profile connection timed out (Registry Latency)')), 10000)
+                setTimeout(() => reject(new Error('Profile connection timed out (Registry Latency)')), TIMEOUTS.PROFILE_FETCH)
             );
 
             const profilePromise = supabase
@@ -83,7 +85,7 @@ export const AuthProvider = ({ children }) => {
 
             let finalProfile = { ...profileData };
 
-            if (profileData.role === 'student') {
+            if (profileData.role === ROLES.STUDENT) {
                 const { data: studentData } = await supabase
                     .from('students')
                     .select('status, deleted_at')
@@ -97,13 +99,13 @@ export const AuthProvider = ({ children }) => {
             }
 
             setProfile(finalProfile);
-            localStorage.setItem('registry_profile', JSON.stringify(finalProfile));
+            localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(finalProfile));
         } catch (error) {
             console.error(`Auth Error (Attempt ${retryCount + 1}):`, error.message);
 
             // Retry logic for network/timeout errors (not 406 or explicit role failures)
-            if (retryCount < 2 && (error.message.includes('timeout') || error.message.includes('fetch'))) {
-                const delay = Math.pow(2, retryCount) * 1000;
+            if (retryCount < TIMEOUTS.MAX_RETRIES && (error.message.includes('timeout') || error.message.includes('fetch'))) {
+                const delay = Math.pow(2, retryCount) * TIMEOUTS.RETRY_BASE;
                 await new Promise(res => setTimeout(res, delay));
                 return fetchProfile(userId, retryCount + 1);
             }

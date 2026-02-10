@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { User, Mail, Shield, Calendar, Edit2, Key, X, Loader2, CheckCircle, ArrowRight, Lock } from 'lucide-react';
@@ -241,6 +242,10 @@ const Profile = () => {
             )}
         </div>
     );
+};
+
+Profile.propTypes = {
+    // No props for this page component, connects to context
 };
 
 export default Profile;

@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { GraduationCap, User, Mail, Lock, Loader2, CheckCircle } from 'lucide-react';
 import logo from '../../assets/bells-logo.jpg';
+import { handleError, isValidEmail, validatePassword } from '../../utils/errorHandler';
+import { ROLES } from '../../constants';
 
 
 const Register = () => {
@@ -10,17 +12,36 @@ const Register = () => {
         email: '',
         password: '',
         fullName: '',
-        role: 'student'
+        role: ROLES.STUDENT
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [success, setSuccess] = useState(false);
     const { signUp } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+
+        // Client-side validation
+        if (!formData.fullName || formData.fullName.trim().length < 3) {
+            setError('Please enter your full name (at least 3 characters).');
+            return;
+        }
+
+        if (!isValidEmail(formData.email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        const passwordValidation = validatePassword(formData.password);
+        if (!passwordValidation.isValid) {
+            setError(passwordValidation.message);
+            return;
+        }
+
+        setLoading(true);
 
         try {
             const { error: signUpError } = await signUp(formData.email, formData.password, {
@@ -30,10 +51,10 @@ const Register = () => {
 
             if (signUpError) throw signUpError;
 
-            alert('Registration successful! Please check your email for confirmation.');
-            navigate('/login');
+            setSuccess(true);
+            setTimeout(() => navigate('/login'), 2000);
         } catch (err) {
-            setError(err.message);
+            setError(handleError(err, 'register'));
         } finally {
             setLoading(false);
         }
@@ -100,6 +121,15 @@ const Register = () => {
                     <div className="academic-card p-1 shadow-2xl shadow-primary-900/10 mb-20 md:mb-0">
                         <div className="bg-white rounded-[1.75rem] p-6 sm:p-10">
                             <form className="space-y-6" onSubmit={handleSubmit}>
+                                {success && (
+                                    <div className="bg-emerald-50 border border-emerald-100 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in duration-300">
+                                        <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            <CheckCircle className="w-5 h-5 text-emerald-600" />
+                                        </div>
+                                        <p className="text-[11px] font-black text-emerald-800 uppercase tracking-tight">Registration successful! Redirecting to login...</p>
+                                    </div>
+                                )}
+
                                 {error && (
                                     <div className="bg-red-50 border border-red-100 p-5 rounded-2xl flex items-center gap-4 animate-in fade-in duration-300">
                                         <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -165,7 +195,7 @@ const Register = () => {
                                     <div className="group">
                                         <label className="block text-[10px] font-black text-primary-950 uppercase tracking-[0.2em] mb-2 ml-1">Authorized Protocol (Account Type)</label>
                                         <div className="flex gap-2">
-                                            {['student', 'staff', 'admin'].map((role) => (
+                                            {[ROLES.STUDENT, ROLES.STAFF, ROLES.ADMIN].map((role) => (
                                                 <button
                                                     key={role}
                                                     type="button"

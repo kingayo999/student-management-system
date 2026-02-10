@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import PropTypes from 'prop-types';
 import { GraduationCap, Mail, Lock, Loader2, ArrowRight } from 'lucide-react';
 import logo from '../../assets/bells-logo.jpg';
+import { handleError, isValidEmail } from '../../utils/errorHandler';
 
 
 const Login = () => {
@@ -15,15 +17,27 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setLoading(true);
         setError('');
+
+        // Client-side validation
+        if (!isValidEmail(email)) {
+            setError('Please enter a valid email address.');
+            return;
+        }
+
+        if (!password || password.length < 6) {
+            setError('Password must be at least 6 characters long.');
+            return;
+        }
+
+        setLoading(true);
 
         try {
             const { error: signInError } = await signIn(email, password);
             if (signInError) throw signInError;
             navigate('/');
         } catch (err) {
-            setError(err.message);
+            setError(handleError(err, 'login'));
         } finally {
             setLoading(false);
         }
@@ -174,6 +188,10 @@ const Login = () => {
             </div>
         </div>
     );
+};
+
+Login.propTypes = {
+    // No props for this page component
 };
 
 export default Login;
